@@ -1,5 +1,8 @@
 ﻿from __future__ import annotations
 
+import asyncio
+import contextlib
+
 from fastapi import FastAPI, Request, HTTPException
 from aiogram.types import Update
 
@@ -12,6 +15,7 @@ app = FastAPI()
 bot = create_bot()
 dp = create_dispatcher()
 dp.include_router(router)
+polling_task: asyncio.Task | None = None
 
 
 @app.on_event("startup")
@@ -21,6 +25,19 @@ async def on_startup():
             url=f"{settings.public_base_url}/webhook",
             secret_token=settings.webhook_secret,
         )
+    else:
+        # Polling mode for local/dev when no public URL is configured.
+        await bot.delete_webhook(drop_pending_updates=True)
+        global polling_task
+        polling_task = asyncio.create_task(dp.start_polling(bot))
+
+
+@app.on_event("shutdown")
+async def on_shutdown():
+    if polling_task:
+        polling_task.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await polling_task
 
 
 @app.post("/webhook")

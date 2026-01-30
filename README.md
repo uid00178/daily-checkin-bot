@@ -41,6 +41,15 @@ docker compose -f infra/docker-compose.yml up --build
 4) Включите webhook (бот выставит его автоматически при старте, если задан `PUBLIC_BASE_URL`).
 5) Настройте запуск `scheduler` по расписанию (каждые 30–60 минут). Если в App Platform нет scheduled jobs, используйте VM с cron только для scheduler.
 
+### MVP (одно приложение в App Platform)
+Если App Platform не позволяет указать путь к Dockerfile, он должен лежать в корне репозитория.
+Для проверки работы можно:
+1) Скопировать `infra/Dockerfile.api` в корень как `Dockerfile`.
+2) Создать одно приложение (Dockerfile из корня) и задать переменные окружения как для `api`.
+3) Не задавать `PUBLIC_BASE_URL` и `TELEGRAM_WEBHOOK_SECRET`, чтобы работал polling.
+
+Ограничение MVP: без `worker` и `scheduler` не будет напоминаний/эскалаций.
+
 ## Логика
 - Scheduler создает `daily_state` на 36 часов вперед и ставит `checkin_due` задачи с ETA.
 - `checkin_due` ставит напоминания (T+30, T+60, T+90) и дедлайн.
